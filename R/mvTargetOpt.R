@@ -1,4 +1,5 @@
 mknorm <- function(x, means=NULL, sds=NULL) {
+  #browser()
   myx <- as.matrix(x)
   if (is.null(means)) {
     xmeans <- colMeans(myx)
@@ -8,6 +9,7 @@ mknorm <- function(x, means=NULL, sds=NULL) {
     xsds <- apply(myx,2,sd)
   } else {
     xsds <- sds }
+  xsds[is.na(xsds)] <- 0
   if (sum(xsds==0)>0) {
     warning("zero variances in mknorm")
     xsds[xsds==0] <- 1
@@ -268,7 +270,7 @@ euclw.old <- function(x, normalize=T) {
 tgpca <- function(dat, tgmean=NULL, tgerr=NULL, wg=0.901, wfun, mknormweights, yweights=F, ylast=NULL) {   #unelegant (2x): t(as.numeric(tgmean))
   if (dim(dat)[2]!=length(tgmean)) stop(paste0("Dimension error in tgpca: ",dim(dat)[2], " and ",length(tgmean)))
   if (!is.null(tgerr)) {
-    if (dim(dat)[2]!=length(tgerr)) stop(paste0("tgerr-Dimension error in tgpca: ",dim(dat)[2], " and ",length(tgmean)))
+    if (dim(dat)[2]!=length(tgerr)) stop(paste0("tgerr-Dimension error in tgpca: ",dim(dat)[2], " and ",length(tgerr)))
   }
 
   rep.row<-function(x,n){
@@ -278,8 +280,7 @@ tgpca <- function(dat, tgmean=NULL, tgerr=NULL, wg=0.901, wfun, mknormweights, y
 
   dat.orig<-dat
   nrw <- nrow(dat)
-  if (!is.null(ylast)) dat <- dat[max(1,(nrw-ylast+1)):nrw,]
-
+  if (!is.null(ylast)) dat <- dat[max(1,(nrw-ylast+1)):nrw,, drop=FALSE]
   # Anteil wg an Pseudobeobachtungen hinzufügen
   n1 <- dim(dat)[1]
   n2 <- round(wg*n1/(1-wg))
@@ -295,7 +296,6 @@ tgpca <- function(dat, tgmean=NULL, tgerr=NULL, wg=0.901, wfun, mknormweights, y
     # print(paste("sqrtyw",sqrt(yw)))
     dat <- sqrt(yw)*dat
   }
-
   if (!is.null(tgmean) & !anyNA(tgmean)  & wg > 0 & wg<1) { # & wg != 0
     pseudobs <- rep.row(as.numeric(tgmean),n2) #apply(t(as.numeric(tgmean)),2,rep,n2)
     if (!is.null(colnames(dat))) colnames(pseudobs)<-colnames(dat)
@@ -309,6 +309,9 @@ tgpca <- function(dat, tgmean=NULL, tgerr=NULL, wg=0.901, wfun, mknormweights, y
   if (wg==1) {
     aobs.mean <- colMeans(allobs)
     aobs.sd <- apply(allobs,2,sd)
+    if (dim(allobs)[1]==1) {
+      aobs.sd[] <- 0
+    }
     if (is.null(tgmean) | anyNA(tgmean)) stop("tgmean nicht korrekt gegeben in tgpca")
   #  print(paste("aobsmean is:", aobs.mean))
   #  print(paste("tgmean is:", tgmean))
@@ -328,6 +331,7 @@ tgpca <- function(dat, tgmean=NULL, tgerr=NULL, wg=0.901, wfun, mknormweights, y
     rs$pca <- prcomp(mknorm(allobs))
   }
   # pseudos aus x entfernen
+  #browser()
   if (wg<1&0<wg) rs$pca$x <- rs$pca$x[-(1:n2),]
   if(!is.null(tgmean)) {
     if (wg>=1) { # hinweis: bei wg>=1 sollte pcatg==0 gelten
@@ -707,6 +711,7 @@ pred.ptch <- function(shift, pcnr, pls1, mknormweights, dat1d.PC12, mindeg, tgme
 #' # the same, but adding the error interval, and enable variance control
 #' pred.solution(dat, tgmean=tgmean,tgerr=c(0.2,0.2), pcnr=1:2)
 pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, maxarea=NULL, ptchoice=1, useweights=TRUE, mknormweights=F, allpts=F, gr2retlimit=TRUE,bpcenter=F,mindeg=0,wfun=function(x) {(1/x)^2}, sequential=F, ptchng=F, nptc=0,tgpcawg=1,betterweights=F,yweights=F,datlim=NULL,knearest=NULL,tgdim=1,ylast=NULL,sto=T,...) {
+  debug<-F
   # nptc: how often has ptchoice been performed
   # Datenstrukturen für tgmean, tgerr, maxarea handlen
   tgmean<-matrix(tgmean,nrow=1)
@@ -830,7 +835,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
   }
   for (iseq in 1:length(pcnr)) newx1d.seq[[iseq]] <- matrix(NA,nrow=0,ncol=iseq)
   for (jjj in pcnr) {                          # kein stop ! sonst irgendwas passiert!
-   # browser()
+    if (sum(!is.na(weightsall[,jjj]))==0) .debug<<-T
     if (sum(!is.na(weightsall[,jjj]))==0) warning("no non-NAs in pred.solution for weightsall[,jjj] (with mknormweights=T?) - degByBIC will probably fail in next line")
 
     if (sequential==F) {
@@ -903,7 +908,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
           #gewicht für datenpunkte minus shift
           shift <- list(); for (ishift in 1:Xdim) shift[[ishift]] <- 0 # shift initialisieren mit 0
           for (ishiftagain in head(pjjj,-1)) {
-            #browser() #spaltennamen werden benutzt und müssen hier spätestens aktualisiert/ergänzt werden
+             #spaltennamen werden benutzt und müssen hier spätestens aktualisiert/ergänzt werden
             colnames(newx1d.seq[[length(pjjj)-1]]) <- head(pjjj,-1)
             shift[[ishiftagain]] <- repna(newx1d.seq[[length(pjjj)-1]][z,paste(ishiftagain)]) }
                                                                                                   # achtung oben, hk, nicht allgemeingültig so...
@@ -947,14 +952,12 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
             # print(newroots)
             # #print(w)
             # print(w[,jjj]/sum(w[,jjj]))
-           # browser()
             newx1d.seq[[length(pjjj)]] <- rbind(as.matrix(newx1d.seq[[length(pjjj)]]),
                                                 as.matrix(cbind(newx1d.seq[[length(pjjj)-1]][z,,drop=F],data.frame(  newroots  ) )) )
             #print("rbind over")
           } else {
              warning("neue nullkoordinaten mit NA eingefügt")
             # print(cbind(newx1d.seq[[length(pjjj)-1]][z,],0 ))
-        #    browser()
             newx1d.seq[[length(pjjj)]] <- rbind(as.matrix(newx1d.seq[[length(pjjj)]]),
                                                 as.matrix(cbind(newx1d.seq[[length(pjjj)-1]][z,,drop=F],NA )) ) # oder na statt 0?
           }
@@ -972,16 +975,13 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
     }#end if additive
     #Varianzkriterium? tgerr ode tgerr_norm
     if (betterweights==3) {
-    #  browser()
       PI.mima <- t(PIhcheck(polymodel(dat1d.PC12[[jjj]],degByBIC(dat1d.PC12[[jjj]],weights=ftweights(1/(ywghtsvar+weightsvar[,jjj])), mindeg=mindeg),
                                       weights=weightsall[,jjj])))
     } else {
-    #  browser()
     PI.mima <- t(PIhcheck(polymodel(dat1d.PC12[[jjj]],degByBIC(dat1d.PC12[[jjj]],weights=weightsall[,jjj], mindeg=mindeg),weights=weightsall[,jjj])))
     }
  #   message("Prädiktions-Intervallbreite für PC",jjj," in [", PIhcheck(polymodel(dat1d.PC12[[jjj]],degByBIC(dat1d.PC12[[jjj]], mindeg=mindeg)))[1],",",PIhcheck(polymodel(dat1d.PC12[[jjj]],degByBIC(dat1d.PC12[[jjj]], mindeg=mindeg)))[2],"]")
     if(!anyNA(tgerr_norm)) {   # here no betterweights3 in following line...
-   #   browser()
       if (PIhcheck(polymodel(dat1d.PC12[[jjj]],degByBIC(dat1d.PC12[[jjj]],weights=weightsall[,jjj], mindeg=mindeg),weights=weightsall[,jjj]))[1]>2*tgerr_norm & !anyNA(tgerr)) {
         is2high <- 1
        # #if (vartoobig==-1) {vartoobig<-i}
@@ -989,7 +989,6 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
        # #     warning("Varianz zu groß. Prädiktions-Intervallbreite: ", 2*qnorm(1-0.05/2)*sqrt(ssw(dat)),">",2*tgerr)
       } else is2high <- 0
     } else {warning("pred.sol: there is NA in tgerr_norm in prediction function"); is2high<-NA}
- #   browser()
     PI <- rbind(PI, cbind(PI.mima,jjj,is2high))
   }
   isprediction <- list()
@@ -1019,7 +1018,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
          ## nur wenn erster durchgang
          if (jjj==pcnr[1]) {
            #jind <- pcnr[(nptc %% Xdim)+1] # Xdim statt length(pcnr)
-         #  browser() #plsXdim?
+         #   #plsXdim?
            jind  <- (nptc %% plsXdim)+1
            print(paste("ptchoose",jjj,"pc:", jind, "nptc:", nptc ))
            #wie soll pcnr brücksichtigt werden?
@@ -1036,7 +1035,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
                                         tgmean_norm=tgmean_norm, maxarea=maxarea,
                                         xmeans=xmeans, xsds=xsds, pls1=pls1, jjj=jjj) # wählt ggf in beiden/allen richtungen
        }
- #   browser() # plsXdim?
+ #   # plsXdim?
     ourshift <- rep(NA, plsXdim)
     if( length(newx1d.PC12[[jjj]])>1) stop("nicht gehandlet pred.sol")
     ourshift[jjj] <- newx1d.PC12[[jjj]]
@@ -1045,10 +1044,12 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
   }
 
   improvePT <- T #!!!!!!!!!!!!!!!##############
+  debugtt=F
   if (improvePT==T) { if(sequential==T) {
     #print("vorhert")
    # print(length(pjjj)) ; print(pjjj) ; print(newx1d.seq)
     if (nrow(newx1d.seq[[length(pjjj)]])==0) { warning("improvett"); print("improvett")
+      #debugtt=TRUE
       newx1d.seq[[length(pjjj)]] <- rbind(newx1d.seq[[length(pjjj)]],na.omit(newx1d.ext))
       # tt <- rbind(tt,newx1d.ext)
       # tt <- na.omit(tt)
@@ -1063,18 +1064,15 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
   if (additive==TRUE) {
     # wir müssen hier die neuen shifts berücksichtige unten beim rücktransformieren
   } else { # end if additive
-  #  browser() #plsXdim?
+  #   #plsXdim?
     tpcnr <- 1:plsXdim # pcnr # Xdim
     if (sequential==T) {
       if (dim(pls1$mod.wgs)[1]==dim(pls1$mod.wgs)[2]) {
         newx.seq <- mkreg(as.matrix(newx1d.seq[[length(pjjj)]])%*%solve(pls1$mod.wgs)[pcnr,],xmeans[xcols],xsds[xcols])
       } else newx.seq <- mkreg(as.matrix(newx1d.seq[[length(pjjj)]])%*%MASS::ginv(pls1$mod.wgs)[pcnr,],xmeans[xcols],xsds[xcols])
     }
-   # print("vorher")
     if (length(pjjj)>0) message(paste("nNewxsq1d",nrow(newx1d.seq[[length(pjjj)]]))) # ausgabe nur wenn sequential bzw pjjj-länge >0
-   # print("nachher")
 
-  #  browser()
     for (jjj in tpcnr) {#warning("nr3")
       if (length(newx1d.PC12)>=jjj) # passiert (nicht) wenn sequential
       {
@@ -1108,6 +1106,8 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FALSE, 
     #message(paste("seq"))
     #print(newx.seq)
   }
+  #if (debugtt==T) browser() #
+  #if (debugtt==T) is.prediction="debug"
   return(list(newx=newx, dat1d.PC12=dat1d.PC12, newx1d.PC12=newx1d.PC12,  is.prediction = is.prediction, isprediction=isprediction, PI=PI, modeg=modeg))#cbind(PI, is.prediction, unlist(isprediction))))
 }
 
@@ -1215,11 +1215,15 @@ pred.solution.old <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr,additive=FAL
     if (!anyNA(tgerr)) tgerr_norm <- tgerr[[1]]+3 else tgerr_norm <- NA
   }
   # PLS
-  pls1 = plsdepot::plsreg1(dat$x, y1d, comps = Xdim)
+  doCrosVal <- !(nrow(dat$x) < 10) # package internal check for plsreg1 is insufficient when comps != NULL
+  message("1216 happens")
+  tryCatch( { pls1 = plsdepot::plsreg1(dat$x, y1d, comps = Xdim, crosval=doCrosVal) }
+            , error= function(e) { print("plsreg1 throws error:"); print(e); stop("plsreg1 failed near line 1217")})
+  #pls1 = plsdepot::plsreg1(dat$x, y1d, comps = Xdim)
+
   # Daten eindimensional für jede HK betrachten
   dat1d.PC12 <- list()
   for (jjj in pcnr) {
-    #browser()
     dat1d.PC12[[jjj]] <- data.frame(x=pls1$x.scores[,paste0("t",jjj)], y=as.numeric(y1d))
   }
   # für jede HK eindimensionale Vorhersage treffen
@@ -1405,7 +1409,35 @@ newexp <- function(n=25, xpos, foo, sd=0.001) {
   return(data.frame(x=I(as.matrix(xn)),y=I(as.matrix(yn))))
 }
 
-
+#' newexp2
+#'
+#' Creates new samples from model function. Used for simulations in the function autosolve as a helper function.
+#'
+#' @param n number of repeated measurements
+#' @param xpos coordinates at which the measurement takes place
+#' @param foo model for the real relationship
+#'
+#' @return a matrix containing the samples
+#' @export
+#'
+#' @examples
+#' #not to be used
+newexp2 <- function (n = 25, xpos, foo, sd = 0.001)
+{
+  xn <- apply(xpos, 2, rep, times = n)
+  if (is.vector(xn))
+    xn <- t(xn)
+  yn <- foo(xn)
+  yn <- yn + rnorm(prod(dim(yn)), 0, sd)
+  #rs <- list(x = as.matrix(xn), y = as.matrix(yn))
+  #class(rs) <- "data.frame"
+  rsdim <- dim(as.matrix(xn))[1]
+  rs <- data.frame(x = numeric(rsdim), y=numeric(rsdim))
+  rs$x <- as.matrix(xn)
+  rownames(rs$x)<-rep(NA,dim(rs$x)[1])
+  rs$y <- as.matrix(yn)
+  return(rs)
+}
 #' Autosolve / PLSolve.auto
 #'
 #' @param startx start values
@@ -1505,8 +1537,8 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
       message(paste0("Schritt ",i,": keine neuen Punkte"))
       break
     }
-  #  browser()
-    datn <- newexp(n=reps,xpos=newx, foo=reality, sd=mod.sd)
+
+    datn <- newexp2(n=reps,xpos=newx, foo=reality, sd=mod.sd)
     datn$nri <- i
     # man könnte noch speichern in welcher PC Richtung die Punkte hinzugefügt wurden
 
@@ -1515,8 +1547,8 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
       print(datn)
       stop("datn hat NA")
     }
-
-    newdat <- rbind(dat,datn)
+    rownames(datn$y) <- rep(NA,dim(datn$y)[1])
+    newdat <- rbind(dat,datn) ## Fehler wegen dimnames von datn$y
     #plot
     if (pplot==TRUE) {
       if (i>1) {
@@ -1538,15 +1570,21 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
       ### DIMENSIONSREDUKTION Y; pca für erklärte y
       if (Ydim>=2) {
         ypca <- tgpca(newdat$y,tgmean,tgerr,wg=tgpcawg)  #besser t(as.numeric(tgmean)) und code vereinfachen, vgl unten
-        #browser()
-        pls1 = plsdepot::plsreg1(newdat$x, ypca$pca$x[,"PC1",drop=F], comps = dim(newdat$x)[2]) #oder comps=2 genug hier?
+
+        doCrosVal <- !(nrow(newdat$x) < 10) # package internal check for plsreg1 is insufficient when comps != NULL
+        tryCatch( { pls1 = plsdepot::plsreg1(newdat$x, ypca$pca$x[,"PC1",drop=F], comps = dim(newdat$x)[2], crosval=doCrosVal) }
+                  , error= function(e) { print("plsreg1 throws error:"); print(e); stop("plsreg1 failed in line 1572")})
+        #pls1 = plsdepot::plsreg1(newdat$x, ypca$pca$x[,"PC1",drop=F], comps = dim(newdat$x)[2]) #oder comps=2 genug hier?
       } else {
         if (anyNA(newdat$y[,"y1",drop=F])){
           print(newdat)
           stop("ZEIL HAT NA 1")
         }
-       # browser()
-        pls1 = plsdepot::plsreg1(newdat$x, newdat$y[,"y1",drop=F], comps = dim(newdat$x)[2])
+        print("line1573 happens")
+        doCrosVal <- !(nrow(newdat$x) < 10) # package internal check for plsreg1 is insufficient when comps != NULL
+        tryCatch( { pls1 = plsdepot::plsreg1(newdat$x, newdat$y[,"y1",drop=F], comps = dim(newdat$x)[2], crosval=doCrosVal) }
+                  , error= function(e) { print("plsreg1 throws error:"); print(e); stop("plsreg1 failed in line 1582")})
+        #pls1 = plsdepot::plsreg1(newdat$x, newdat$y[,"y1",drop=F], comps = dim(newdat$x)[2])
       }
       newdat1d.PC12<-list()
       for (jjj in pcnr) {
@@ -1608,8 +1646,8 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
       if (Ydim>=2) {
         ypca <- tgpca(newdat$y,tgmean,tgerr,wg=tgpcawg)
         #ypca <- tgpca(newdat$y,tgmean,tgerr)  #besser t(as.numeric(tgmean)) und code vereinfachen, vgl unten
-      #  browser()
         doCrosVal <- !(nrow(dat$x) < 10) # package internal check for plsreg1 is insufficient when comps != NULL - contact Gaston Sanchez for Bug report?
+        #print("line1637 happens")
         pls1 = plsdepot::plsreg1(newdat$x, ypca$pca$x[,"PC1",drop=F], comps = dim(newdat$x)[2], crosval=doCrosVal) #oder comps=2? genug? #pls1 = plsreg1(newdat$x, newdat$y[,"y1",drop=F], comps = dim(newdat$x)[2])
         #pls1 = plsdepot::plsreg1(newdat$x, ypca$pca$x[,"PC1",drop=F], comps = dim(newdat$x)[2])
       } else {
@@ -1619,8 +1657,11 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
           print(xsds)
           stop("ZEIL HAT NA 2")
         }
-     #   browser()
-        pls1 = plsdepot::plsreg1(newdat$x, newdat$y[,"y1",drop=F], comps = dim(newdat$x)[2])
+
+        doCrosVal <- !(nrow(newdat$x) < 10) # package internal check for plsreg1 is insufficient when comps != NULL
+        tryCatch( { pls1 = plsdepot::plsreg1(newdat$x, newdat$y[,"y1",drop=F], comps = dim(newdat$x)[2], crosval=doCrosVal) }
+                  , error= function(e) { print("plsreg1 throws error:"); print(e); stop("plsreg1 failed near line 1650")})
+        #pls1 = plsdepot::plsreg1(newdat$x, newdat$y[,"y1",drop=F], comps = dim(newdat$x)[2])
       }
             #fragwürdiges abbruchkriterium
       newdat1d.PC12 <- list()
