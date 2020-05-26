@@ -13,7 +13,7 @@ usejson <- function(processdat="processparameter.json", formdat="formdata_202002
   # filter for alloy and heat treatment
   alloys <- formdat$alloys    #  alloys <- "100Cr6"
   if (ignorehts==T)
-    hts <- c("Q4",  "B3",  "GKZ", "Q3",  "Q1",  "QT1")
+    hts <- c("Q4",  "B3",  "GKZ", "Q3",  "Q1",  "Q2T1")
   else
     hts <- formdat$hts
 
