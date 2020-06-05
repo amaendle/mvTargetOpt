@@ -2,13 +2,13 @@
 % Please edit documentation in R/mvTargetOpt.R
 \name{tgpca}
 \alias{tgpca}
-\title{PCA}
+\title{tgpca}
 \usage{
 tgpca(
   dat,
   tgmean = NULL,
   tgerr = NULL,
-  wg = 0.901,
+  wg = 1,
   wfun,
   mknormweights,
   yweights = F,
@@ -16,23 +16,33 @@ tgpca(
 )
 }
 \arguments{
-\item{dat}{data set}
+\item{dat}{matrix, data.frame}
 
-\item{tgmean}{optional}
+\item{tgmean}{numeric vector, optional}
 
-\item{tgerr}{optional}
+\item{tgerr}{numeric vector, optional}
 
-\item{wg}{weight of the target value. If wg equals 1 or 2 then the pca is performed with the target value as center}
+\item{wg}{numeric,  weight for the target value. If wg equals 1 or 2 then the pca is performed with the target value as center}
+
+\item{wfun}{function, weight function}
+
+\item{mknormweights}{unused}
+
+\item{yweights}{boolean, use weights?}
+
+\item{ylast}{integer or NULL, if integer, ignore observations older than the last \code{ylast} evaluation points.}
 }
 \value{
 returns the results of the pca and some extra stuff
 }
 \description{
-used for dimension reduction of the target space
-in order to choose a certain direction through the target point for the projections wg has to be set to 1, then the target point is chosen as center for the pca.
-If wg between 0 and 1 then pseudo observations at the target point are created such that a ratio of wg of the observations are pseudo observations.
-uses prcomp on standardized data and pseudo data.
+Function which performs a principal component analysis (PCA) on the descriptor variable data (in the target space) given by \code{dat},
+In order to choose a certain direction through the target point for the projections,
+\code{wg} has to be set to 1 -- then the target point is chosen as center for the PCA.
+If \code{wg} lies between 0 and 1, pseudo observations at the target point are created such that a ratio of \code{wg}
+of the observations are pseudo observations.
+Then \code{prcomp} is applied  to the standardized data and pseudo data.
 }
 \examples{
-tgpca(matrix(rnorm(20),ncol=2))
+tgpca(matrix(rnorm(20),ncol=2), tgmean=c(0,0))
 }

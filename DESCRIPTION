@@ -1,6 +1,6 @@
 Package: mvTargetOpt
 Type: Package
-Title: multivariate multi-target optimization
+Title: Multivariate multi-target optimization
 Version: 0.2.0
 Author: Andreas Maendle
 Maintainer: Andreas Maendler <maendle@uni-bremen.de>
