@@ -116,7 +116,7 @@ polymodel <- function(dat, degree=1, weights=NULL) {
     stop("polymodel: infinite weights")
   }
   if (degree<1) {
-    warning("polymodel < 1")
+    message("polymodel < 1")
   }
   if (degree<0) {
     stop("polymodel < 0")
@@ -149,7 +149,7 @@ polymodel2 <- function(dat, degree, weights=NULL) {
     stop("polymodel2: infinite weights") ###
   } ###
   if (degree<1) {
-    warning("polymodel2 < 1")
+    message("polymodel2 < 1")
   }
   if (degree<0) {
     stop("polymodel2 < 0")
@@ -164,16 +164,27 @@ polymodel2 <- function(dat, degree, weights=NULL) {
   }
 }
 
+#' getroots2
+#'
+#' @param dat matrix
+#' @param degree integer
+#' @param target numeric vector
+#' @param limit integer
+#' @param weights numeric vector
+#' @param retlimit boolean
+#'
+#' @return
+#' @export=FALSE
 getroots2 <- function(dat, degree, target, limit=40, weights=NULL, retlimit=FALSE) {
   if (!is.null(weights)) if (sum(is.na(weights))>0) stop("NA values in weights for getroots2()")
-  #linear model          # wie plotlm, nur anders
+  #linear model
   fm <- polymodel2(dat, degree, weights=weights)
 
   #find roots
   coeff <- coefficients(fm)
   if (0<sum(is.na(coeff))) {
-    coeff[is.na(coeff)] <- 0 ## NA durch 0 ersetzen, bloedes error handling, vorübergehende notloesung
-    warning("getroots: seriously, NA was chosen as coefficient in polymodel2 before. replaced by 0")
+    coeff[is.na(coeff)] <- 0 ## replace NA by 0
+    warning("getroots: NA was chosen as coefficient in polymodel2 before. replaced by 0")
   }
 
   coeff[1]<-coeff[1]-target
@@ -181,25 +192,22 @@ getroots2 <- function(dat, degree, target, limit=40, weights=NULL, retlimit=FALS
   # special case degree 0
   if (degree==0) {
     if (identical(coeff[1],0)) {
-      warning("getroots2: all points are cutpoints, degree 0")
+      message("getroots2: all points are cutpoints, degree 0")
     } else {
-      warning("getroots2: äöü no cutpoints, degree 0")
+      message("getroots2: no cutpoints, degree 0")
     }
     #return(data.frame(x = numeric())) # leeres ergebnis zurück
     return(as.numeric(dat$x[which.min(abs(dat$y-target))]) )#return(data.frame(x = as.numeric(dat$x[which.min(abs(dat$y-target))]) ))
   } else {
 
     roots <- polyroot( coeff )
-    roots <- Re(roots)[abs(Im(roots)) < 1]#1e-1]#1e-6]   ############ACHTUNG, nur experimentel auskommentiert
+    roots <- Re(roots)[abs(Im(roots)) < 1]#1e-1]#1e-6]
     if (retlimit==TRUE) {
-      if (sum(roots < -abs(limit))+sum(roots > abs(limit))>0) warning(paste("getroots2: roots truncated times",sum(roots < -abs(limit))+sum(roots > abs(limit))))
+      if (sum(roots < -abs(limit))+sum(roots > abs(limit))>0) message(paste("getroots2: roots truncated in",sum(roots < -abs(limit))+sum(roots > abs(limit)),"cases"))
       roots[roots < -abs(limit)] <- -abs(limit)
       roots[roots > abs(limit)] <- abs(limit)
     } else {
     roots <- roots[abs(roots)<=limit] }
-    #    if (dim(roots[abs(roots)<=limit])[1]>0)
-    # if (dim(roots)[1]<1)
-    #  roots<-sign(roots)*limit*(0.5+0.5*runif(1))
     rootdta <- data.frame(x = roots)
     # rootdta$y <- predict(fm, newdata=rootdta)
     return(rootdta$x)
@@ -288,27 +296,27 @@ euclw <- function(x, normalize=T, sto=T) {
     nrs
     } else rs
 }
-#' #' euclw.old
-#' #'
-#' #' Obsolete, has problems wih precision due to \code{rowsums - x^2}. New version: \code{euclw}
-#' #'
-#' #' Takes a matrix/data.frame \code{x} with each coloumn having the scores corresponding to  a principal component.
-#' #' Computes weights as needed in 1d regression models,
-#' #' i.e. returns for each of the 1d-projections on the PC the Euclidean distances from the n-dimensional point in the n-space.
-#' #'
-#' #' @param x matrix, data.frame
-#' #' @param normalize boolean, \code{TRUE} for normalized weights.
-#' #' @param sto boolean, if \code{TRUE} ignore higher principal component coordinates.
-#' #'
-#' #' @return matrix
-#' #' @export=FALSE
-#' euclw.old <- function(x, normalize=T) {
-#'
-#'   t2 <- rowSums( x^2 )
-#'   t1 <- (x^2)*(-1)
-#'   rs <- sqrt(sweep(t1,1,t2,"+"))
-#'   if(normalize==T) apply(rs,2,mknorm) else rs
-#' }
+# #' euclw.old
+# #'
+# #' Obsolete, has problems wih precision due to \code{rowsums - x^2}. New version: \code{euclw}
+# #'
+# #' Takes a matrix/data.frame \code{x} with each coloumn having the scores corresponding to  a principal component.
+# #' Computes weights as needed in 1d regression models,
+# #' i.e. returns for each of the 1d-projections on the PC the Euclidean distances from the n-dimensional point in the n-space.
+# #'
+# #' @param x matrix, data.frame
+# #' @param normalize boolean, \code{TRUE} for normalized weights.
+# #' @param sto boolean, if \code{TRUE} ignore higher principal component coordinates.
+# #'
+# #' @return matrix
+# #' @export=FALSE
+# euclw.old <- function(x, normalize=T) {
+#
+#   t2 <- rowSums( x^2 )
+#   t1 <- (x^2)*(-1)
+#   rs <- sqrt(sweep(t1,1,t2,"+"))
+#   if(normalize==T) apply(rs,2,mknorm) else rs
+# }
 
 #' tgpca
 #'
@@ -331,8 +339,11 @@ euclw <- function(x, normalize=T, sto=T) {
 #' @return returns the results of the pca and some extra stuff
 #' @export=FALSE
 #'
-#' @examples tgpca(matrix(rnorm(20),ncol=2))
+#' @examples tgpca(matrix(rnorm(20),ncol=2), tgmean=c(0,0))
 tgpca <- function(dat, tgmean=NULL, tgerr=NULL, wg=1, wfun, mknormweights, yweights=F, ylast=NULL) {    #wg=0.901
+  if(is.null(tgmean)) {
+    stop("tgmean was NULL, but must be vector of the same length as the number of coloumns of dat")
+  }
   if (dim(dat)[2]!=length(tgmean)) stop(paste0("Dimension error in tgpca: ",dim(dat)[2], " and ",length(tgmean)))
   if (!is.null(tgerr)) {
     if (dim(dat)[2]!=length(tgerr)) stop(paste0("tgerr-Dimension error in tgpca: ",dim(dat)[2], " and ",length(tgerr)))
@@ -641,7 +652,7 @@ ftweights <- function(w1) {
 #'
 #' Internal function.
 #' Returns a subset of the  unique points of \code{newx} whgich are not
-#' (up to an epsilon \coed{xeps}) identical to the points in \code{datx}.
+#' (up to an epsilon \code{xeps}) identical to the points in \code{datx}.
 #'
 #' @param newx matrix
 #' @param xeps numeric
@@ -704,7 +715,7 @@ nclose2mean <- function(datx, center, n=1) {
 
 #' pred.ptch
 #'
-#' Internal function. Extends the function \code{pred.solution}.
+#' Internal function. Extends the function \code{opt.onestep}.
 #'
 #' @param shift numeric vector
 #' @param pcnr integer vector
@@ -757,7 +768,7 @@ pred.ptch <- function(shift, pcnr, pls1, mknormweights, dat1d.PC12, mindeg, tgme
   }
 }
 
-#' pred.solution
+#' opt.onestep
 #'
 #' Performs one iteration of the implemented optimization procedure.
 #' Suggest points for future measurements in order to find a solution that reaches the desired target value.
@@ -808,10 +819,8 @@ pred.ptch <- function(shift, pcnr, pls1, mknormweights, dat1d.PC12, mindeg, tgme
 #' # assume we want to find process parameters close to tgmean
 #' tgmean <- tfoo(cbind(0.35,0.4))
 #' # make a guess for a solution based on the specified parameters:
-#' pred.solution(dat, tgmean=tgmean, pcnr=1:2)
-#' # the same, but adding the error interval, and enable variance control
-#' pred.solution(dat, tgmean=tgmean,tgerr=c(0.2,0.2), pcnr=1:2)
-pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, ptchoice=1, useweights=TRUE, mknormweights=F, allpts=F, gr2retlimit=TRUE,bpcenter=F,mindeg=0,wfun=function(x) {(1/x)^2}, sequential=F, ptchng=F, nptc=0,tgpcawg=1,betterweights=F,yweights=F,datlim=NULL,knearest=NULL,tgdim=1,ylast=NULL,sto=T,...) {
+#' opt.onestep(dat, tgmean=tgmean,tgerr=c(0.2,0.2), pcnr=1:2)
+opt.onestep <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, ptchoice=1, useweights=TRUE, mknormweights=F, allpts=F, gr2retlimit=TRUE,bpcenter=F,mindeg=0,wfun=function(x) {(1/x)^2}, sequential=F, ptchng=F, nptc=0,tgpcawg=1,betterweights=F,yweights=F,datlim=NULL,knearest=NULL,tgdim=1,ylast=NULL,sto=T,...) {
   debug<-F
   # nptc: how often has ptchoice been performed
   # check data structures for tgmean, tgerr, maxarea
@@ -820,7 +829,11 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
     tgerr <- matrix(tgerr,nrow=1)
   } else tgerr <- matrix(NA,nrow=1,ncol=length(tgmean)) #tgerr<- ifelse(!is.null(tgerr), matrix(tgerr,nrow=1), matrix(NA,nrow=1,ncol=length(tgmean)))
 
-  stepi <- 1 + max(dat$nri)
+    if (is.null(dat$nri)) {
+      stepi<-1
+    } else {
+      stepi <- 1 + max(dat$nri)
+    }
   if (!is.null(datlim)) {
     dat <- dat[dat$nri >= (max(dat$nri)-datlim) ,] #tail(dat, datlim)
   } else if (!is.null(knearest)&bpcenter!=T) { # k nearest to last observation # !=T, i.e. will be executed also for bpcenter=2
@@ -834,9 +847,9 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
   if (is.matrix(maxarea)) {
     xdim <- dim(dat$x)[2]#dim(dat)[2]-dim(tgmean)[2]
     if (dim(maxarea)[1] != xdim |  dim(maxarea)[2] != 2)
-      stop("wrong dimensions of maxarea in pred.solution")
+      stop("wrong dimensions of maxarea in opt.onestep")
     rm(xdim)
-  } else if (!is.null(maxarea)) stop("maxarea must be a matrix or NULL in pred.solution")
+  } else if (!is.null(maxarea)) stop("maxarea must be a matrix or NULL in opt.onestep")
 
   # init PI; Ydim, Xdim; xmeans, xsds
   PI <- data.frame(pi.l=numeric(), pi.r=numeric(), pc=integer(), nr=integer())
@@ -848,7 +861,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
   #WARNING if  DIMENSION and tgmean don't match
   #dimension of x and y
   if (is.vector(dat$y)) {Ydimcheck <- 1} else {Ydimcheck <- dim(dat$y)[2]}
-  if (Ydimcheck!=Ydim) stop("pred.solution: dimension of dat$y does not match dimension of tgmean")
+  if (Ydimcheck!=Ydim) stop("opt.onestep: dimension of dat$y does not match dimension of tgmean")
   rm(Ydimcheck)
 
   # DIMENSION REDUCTION X
@@ -877,7 +890,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
   # PLS
   doCrosVal <- !(nrow(dat$x) < 10) # package internal check for plsreg1 is insufficient when comps != NULL - contact Gaston Sanchez for bug report?
   tryCatch( { pls1 = plsdepot::plsreg1(dat$x, y1d, comps = Xdim, crosval=doCrosVal) }
-            , error= function(e) { print("plsreg1 throws error:"); print(e); stop("plsreg1 failed in pred.solution")})
+            , error= function(e) { print("plsreg1 throws error:"); print(e); stop("plsreg1 failed in opt.onestep")})
   #pls1 = plsdepot::plsreg1(dat$x, y1d, comps = Xdim)
   plsXdim <- dim(pls1$x.scores)[2]
   # treat single dimensions for each principal componant in the list separately
@@ -896,7 +909,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
       weightsall <- wfun(euclw(pls1$x.scores, mknormweights, sto))
       weightsvar <- (euclw(pls1$x.scores, mknormweights, sto))^2
     } else {
-      if (is.vector(dat$y)) {tmp1 <- abs(dat$y-tgmean[[1]]); stop("dat$y is vector in pred.solution")} else {
+      if (is.vector(dat$y)) {tmp1 <- abs(dat$y-tgmean[[1]]); stop("dat$y is vector in opt.onestep")} else {
         tmp1 <- sweep(dat$y,2,as.numeric(tgmean)) # or dat$y?
         tmp1 <- sqrt(rowSums( tmp1^2 ))
       }
@@ -927,7 +940,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
   for (iseq in 1:length(pcnr)) newx1d.seq[[iseq]] <- matrix(NA,nrow=0,ncol=iseq)
   for (jjj in pcnr) {                          # don't stop() here!
     if (sum(!is.na(weightsall[,jjj]))==0) .debug<<-T
-    if (sum(!is.na(weightsall[,jjj]))==0) warning("no non-NAs in pred.solution for weightsall[,jjj] (with mknormweights=T?) - degByBIC will probably fail")
+    if (sum(!is.na(weightsall[,jjj]))==0) warning("no non-NAs in opt.onestep for weightsall[,jjj] (with mknormweights=T?) - degByBIC will probably fail")
 
     if (sequential==F) {
       if (betterweights==3) {
@@ -1076,7 +1089,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
        # warning("Varianz zu groß. Prädiktions-Intervallbreite von [", PIhcheck(polymodel(dat1d.PC12[[jjj]],degByBIC(dat1d.PC12[[jjj]], mindeg=mindeg))),"]>",2*tgerr_norm)
        # #     warning("Varianz zu groß. Prädiktions-Intervallbreite: ", 2*qnorm(1-0.05/2)*sqrt(ssw(dat)),">",2*tgerr)
       } else is2high <- 0
-    } else {warning("pred.sol: there is NA in tgerr_norm in prediction function"); is2high<-NA}
+    } else {warning("NAs in tgerr_norm"); is2high<-NA}
     PI <- rbind(PI, cbind(PI.mima,jjj,is2high))
   }
   isprediction <- list()
@@ -1199,7 +1212,7 @@ pred.solution <- function(dat,tgmean,tgerr=NULL,xeps=0.001,pcnr, maxarea=NULL, p
 #'
 #' @return plot
 #' @export=TRUE
-plotexp <- function(dat, target, tgerr, prediction=NULL, model=NULL, limit0=FALSE, reality=NULL) {
+plotexp <- function(dat, target, tgerr, prediction=NULL, model=NULL, limit0=FALSE, reality=NULL, xlab="Process parameter (p)", ylab="Descriptor (d)") {
   fm <- model
 
   #cf. code block further below
@@ -1239,7 +1252,7 @@ plotexp <- function(dat, target, tgerr, prediction=NULL, model=NULL, limit0=FALS
 
   myplot <- myplot +
     geom_point(data = dat, aes(x = x, y = y), color="black", shape=3) +
-    labs(x = "Process parameter (p)", y="Descriptor (d)") +
+    labs(x = xlab, y=ylab) +
     annotate("rect", xmin=-Inf, xmax=Inf, ymin=target-tgerr, ymax=target+tgerr, alpha=0.5, fill="green") +
     geom_hline(yintercept = target)
 
@@ -1322,7 +1335,7 @@ newexp2 <- function (n = 25, xpos, foo, sd = 0.001)
 #'
 #' Applies the iterative optimization algorithm suggested in this package.
 #' To perform the simulations automatically, the true model has to be specified.
-#' When in practice the true model is unknown, use \code{pred.solution} function instead to get a candidate for the unknown optimum in a single iteration.
+#' When in practice the true model is unknown, use \code{opt.onestep} function instead to get a candidate for the unknown optimum in a single iteration.
 #'
 #' @param startx numeric matrix, start values
 #' @param tgmean numeric v4ector, target value vector
@@ -1331,7 +1344,7 @@ newexp2 <- function (n = 25, xpos, foo, sd = 0.001)
 #' @param maxit integer, maximum number of iterations
 #' @param reality function, real model
 #' @param xeps nunmeric, smallest (reasonably) distinguishable epsilon
-#' @param pplot boolean, do plots?, pplot=TRUE is deprecated
+#' @param pplot boolean, diagnostic plots
 #' @param pcnr integer vector, defines which principal directions will be considered
 #' @param maxarea numeric matrix, area range, which will be explored
 #' @param useweights boolean
@@ -1353,38 +1366,42 @@ newexp2 <- function (n = 25, xpos, foo, sd = 0.001)
 #' @export=TRUE
 #'
 #' @examples
-#' # Erzeuge 3x3 Modell für Simulation
-#' startx <- mydata
+#' # example 1: 2x2 MModell
 #' tfoo <- function(x) {
 #'   x1 <- x[,1]
 #'   x2 <- x[,2]
-#'   # x3 <- x[,3]
 #'   return( data.frame( y1=0.8*x1 - 1.2*x2,
-#'                       y2=0.8*x1 - 1.2*abs(x2)^0.25#,
-#'                      #  y3=0.8*x1 - 0.6*abs(x2)^0.25 + x3
+#'                       y2=0.8*x1 - 1.2*abs(x2)^0.25
 #'  ) ) }
-#' tgmean <- tfoo(cbind(1.35,1.4))#,1.5))#tfoo(cbind(0.35,0.4,0.5))
-#' tgerr <- c(0.2,0.2)#,0.5)
-#' #reps <- 5
-#' #maxit <-10
-#' #reality <- tfoo
-#' #xeps <- 0.01
-#' #pplot <- TRUE
-#' tmp<-autosolve(startx,tgmean,tgerr*0.125,reps=7,maxit=10,tfoo, xeps=0.01, F, pcnr=c(1,2))
-#' #nwexample
-#' dstgmean <- tfoo(cbind(1.35,1.4))#,1.5))#tfoo(cbind(0.35,0.4,0.5))
-#' tgerr <- c(0.2,0.2)#,0.5)
-#' reps <- 5
-#' maxit <-10
-#' reality <- tfoo
+#' dstgmean <- tfoo(cbind(1.35,1.4))
+#' tgerr <- c(0.025,0.025)
 #' xeps <- 0.01
-#' pplot <- TRUE
 #' startx <- expand.grid(x1=c(-1,3),x2=c(-1,3))
 #' set.seed(123)
-#' autosolve(startx,tgmean,tgerr*0.125,reps=7,maxit=10,tfoo, xeps, F, pcnr=c(1,2))
-autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xeps=0.01, pplot=TRUE, pcnr=c(1,2),maxarea=NULL, useweights=TRUE, mknormweights=F,gr2retlimit=T, mindeg=0,sequential=F,tgpcawg=1,yweights=F,datlim=NULL, knearest=NULL,tgdim=1,ylast=NULL,sto=T,mod.sd=NULL,...) {
+#' autosolve(startx,dstgmean,tgerr,reps=7,maxit=10,tfoo, xeps, F, pcnr=c(1,2), mod.sd=0.2)
+#'
+#' # example 2, 3x3 model
+#' set.seed(123)
+#' startx <- data.frame(x1=runif(4,-4,4),x2=runif(4,-4,4),x3=runif(4,-4,4))
+#' tfoo <- function(x) {
+#'   x1 <- x[,1]
+#'   x2 <- x[,2]
+#'   x3 <- x[,3]
+#'   return( data.frame( y1=0.8*x1 - 1.2*x2,
+#'                       y2=0.8*x1 - 1.2*abs(x2)^0.25,
+#'                       y3=0.8*x1 - 0.6*abs(x2)^0.25 + x3
+#'  ) ) }
+#' tgmean <- tfoo(cbind(1.35,1.4,1.5))#tfoo(cbind(0.35,0.4,0.5))
+#' tgerr <- c(0.5,0.5,0.5)
+#' tmp<-autosolve(startx,tgmean,tgerr*0.125,reps=4,maxit=6,tfoo, xeps=0.01, F, pcnr=c(1,2), mod.sd=0.2)
+#'
+autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xeps=0.01, pplot=FALSE, pcnr=c(1,2),maxarea=NULL, useweights=TRUE, mknormweights=F,gr2retlimit=T, mindeg=0,sequential=F,tgpcawg=1,yweights=F,datlim=NULL, knearest=NULL,tgdim=1,ylast=NULL,sto=T,mod.sd=NULL,...) {
   tgmean<-matrix(tgmean,nrow=1)
   tgerr<- matrix(tgerr,nrow=1)
+  if (is.null(mod.sd)) {
+    warning("mod.sd unspecified. Set mod.sd=0.")
+    mod.sd=0
+  }
   # dimensions
   Xdim <- dim(startx)[2]
   Ydim <- dim(tgmean)[2]
@@ -1401,10 +1418,10 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
     }
     if (i>1) {
       flag <- TRUE
-      tryCatch( { rs <- pred.solution(dat=dat,tgmean=tgmean,tgerr=tgerr,xeps=xeps,pcnr=pcnr,maxarea=maxarea, useweights=useweights, mknormweights=mknormweights,gr2retlimit=gr2retlimit,mindeg=mindeg,sequential=sequential,nptc=sum(!ispred),tgpcawg=tgpcawg,yweights=yweights,datlim=datlim,knearest=knearest,tgdim=1+((i-1-1) %% tgdim), ylast=ylast,sto=sto,...) }
-                , error= function(e) { print("break out of for - pred.solution throws error:"); print(e); flag<<-FALSE}) #,additive=additive
+      tryCatch( { rs <- opt.onestep(dat=dat,tgmean=tgmean,tgerr=tgerr,xeps=xeps,pcnr=pcnr,maxarea=maxarea, useweights=useweights, mknormweights=mknormweights,gr2retlimit=gr2retlimit,mindeg=mindeg,sequential=sequential,nptc=sum(!ispred),tgpcawg=tgpcawg,yweights=yweights,datlim=datlim,knearest=knearest,tgdim=1+((i-1-1) %% tgdim), ylast=ylast,sto=sto,...) }
+                , error= function(e) { print("break out of for - opt.onestep throws error:"); print(e); flag<<-FALSE}) #,additive=additive
       if (!flag) break
-      #rs <- pred.solution(dat=dat,tgmean=tgmean,tgerr=tgerr,xeps=xeps,pcnr=pcnr,additive=additive,maxarea=maxarea, useweights=useweights, mknormweights=mknormweights,gr2retlimit=gr2retlimit,mindeg=mindeg,sequential=sequential,nptc=sum(!ispred),tgpcawg=tgpcawg,yweights=yweights,datlim=datlim,...)
+      #rs <- opt.onestep(dat=dat,tgmean=tgmean,tgerr=tgerr,xeps=xeps,pcnr=pcnr,additive=additive,maxarea=maxarea, useweights=useweights, mknormweights=mknormweights,gr2retlimit=gr2retlimit,mindeg=mindeg,sequential=sequential,nptc=sum(!ispred),tgpcawg=tgpcawg,yweights=yweights,datlim=datlim,...)
       newx <- rs$newx
       # check for NAs
       if (anyNA(newx)){
@@ -1442,7 +1459,9 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
     rownames(datn$y) <- rep(NA,dim(datn$y)[1])
     newdat <- rbind(dat,datn) ## !dimnames of datn$y
     if (pplot==TRUE) {
+      if (!require("mvTargetOpt")) stop("ggplot2 is needed for the plot")
       if (i>1) {
+      myypca <- ypca
         #where appear the new points in the old coordinate system?
         xcols <- grep("x.", names(xmeans), value = TRUE)
         tmpscores <- mknorm(newdat$x,xmeans[xcols],xsds[xcols])%*%pls1$mod.wgs
@@ -1452,7 +1471,7 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
         newdat1d.PC12 <- list()
         for (jjj in pcnr) {
           newdat1d.PC12[[jjj]] <- data.frame(x=tmpscores[,jjj], y=tmpscoresy[,1]) #newdat1d <-   data.frame(x=tmpscores[,1], y=newdat$y[,"y1"])
-          print(plotexp(dat=newdat1d.PC12[[jjj]], target=myypca$pcatg[,"PC1"], myypca$pcatgerr[,"PC1"], prediction=NULL, model=polymodel(dat1d.PC12[[jjj]], degByBIC(dat1d.PC12[[jjj]], mindeg=mindeg)), limit0=TRUE) )
+          print(plotexp(dat=newdat1d.PC12[[jjj]], target=myypca$pcatg[,"PC1"], myypca$pcatgerr[,"PC1"], prediction=NULL, model=polymodel(dat1d.PC12[[jjj]], degByBIC(dat1d.PC12[[jjj]], mindeg=mindeg)), limit0=TRUE, ylab=paste("Descriptor (d) PC",jjj) ) )
         }
       }
       # DIMENSION REDUCTION (for the following plot)
@@ -1504,7 +1523,7 @@ autosolve <- function(startx, tgmean, tgerr, reps=25, maxit=10, reality=foo, xep
                       prediction=getroots2(newdat1d.PC12[[jjj]],
                                            degByBIC(newdat1d.PC12[[jjj]], mindeg=mindeg),
                                            tgmean_norm, retlimit = gr2retlimit),# t(as.numeric(tgmean))),
-                      model=polymodel(newdat1d.PC12[[jjj]], degByBIC(newdat1d.PC12[[jjj]], mindeg=mindeg)), limit0=T ) )
+                      model=polymodel(newdat1d.PC12[[jjj]], degByBIC(newdat1d.PC12[[jjj]], mindeg=mindeg)), limit0=T, ylab=paste("Descriptor (d) PC",jjj) ) )
       }
       #plot using plotly
       # plot_ly(x = newdat$x[,"x1"], y = newdat$x[,"x2"], z = newdat$y[,"y2"], marker = list(color = newdat$y[,"y1"], colorscale = c('#FFE1A1', '#683531'), showscale = TRUE)) %>%

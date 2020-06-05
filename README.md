@@ -1,3 +1,5 @@
+# Install the package
+
 To install the package dirctly from GitLab enter the following in the R-console:
 
 ```
@@ -6,13 +8,11 @@ mypersonalaccesstoken <- "abc123???" # put yout personal access token from GitLa
 devtools::install_gitlab(repo="maendle/mvtargetopt", auth_token=mypersonalaccesstoken, host = "https://gitlab.informatik.uni-bremen.de/")
 ```
 
-To use it using some JSON files you have to define the corresponding paths as parameter:
+# References
 
-```
-mvTargetOpt::usejson(processdat="processparameter.json", 
-                     formdat="formdata_20200211.json", 
-                     maindat="http://test.sfb1232.de:85/all_metric_dl", 
-                     outjson="out.json")
-```
+MDPI and ACS Style
+Bader, A.; Toenjes, A.; Wielki, N.; Mändle, A.; Onken, A.-K.; Hehl, A.; Meyer, D.; Brannath, W.; Tracht, K. Parameter Optimization in High-Throughput Testing for Structural Materials. Materials 2019, 12, 3439.
 
-If the chosen input is not appropriate there will be an error (as console output and in out.json).
+# Acknowledgments
+
+Financial support of subproject P02 ‘Heuristic, Statistical and Analytical Experimental Design’ of the Collaborative Research Center SFB 1232 "Farbige Zustände" by the German Research Foundation (DFG) is gratefully acknowledged.
