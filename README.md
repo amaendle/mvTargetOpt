@@ -1,18 +1,21 @@
-# Install the package
+# mvTargetOpt: multivariate multi-target optimization
 
-To install the package dirctly from GitLab enter the following in the R-console:
+[![DOI](https://zenodo.org/badge/269591550.svg)](https://zenodo.org/badge/latestdoi/269591550)
+
+## Install the package
+
+To install the package dirctly from GitHub enter the following in the R-console:
 
 ```
 install.packages("devtools")
-mypersonalaccesstoken <- "abc123???" # put yout personal access token from GitLab here
-devtools::install_gitlab(repo="maendle/mvtargetopt", auth_token=mypersonalaccesstoken, host = "https://gitlab.informatik.uni-bremen.de/")
+install_github("amaendle/mvTargetOpt")
 ```
 
-# References
+## References
 
 MDPI and ACS Style
 Bader, A.; Toenjes, A.; Wielki, N.; Mändle, A.; Onken, A.-K.; Hehl, A.; Meyer, D.; Brannath, W.; Tracht, K. Parameter Optimization in High-Throughput Testing for Structural Materials. Materials 2019, 12, 3439.
 
-# Acknowledgments
+## Acknowledgments
 
 Financial support of subproject P02 ‘Heuristic, Statistical and Analytical Experimental Design’ of the Collaborative Research Center SFB 1232 "Farbige Zustände" by the German Research Foundation (DFG) is gratefully acknowledged.

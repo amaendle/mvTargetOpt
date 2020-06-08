@@ -6,7 +6,7 @@ Author: Andreas Maendle
 Maintainer: Andreas Maendler <maendle@uni-bremen.de>
 Description: Multi-objective optimization algorithm.
     A new approach, using ideas from PCA dimension reduction and PLS regression.
-License: GPL
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports: plsdepot
